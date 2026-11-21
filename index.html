@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>被窝里的贪吃蛇 · 晚课之后</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100svh;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 18%,#303d31,#161e19 47%,#0e1512 85%);color:#f0f1e8;font:16px/1.45 system-ui,sans-serif}main{width:min(100% - 24px,380px);padding:16px 0;text-align:center}header small{color:#b2bea9;font-size:.88rem;letter-spacing:.14em}h1{margin:3px 0 9px;font-size:1.5rem}section{width:min(100%,300px);margin:auto;padding:9px 12px 12px;background:#232e25;border:1px solid #52614e;border-radius:22px;box-shadow:0 14px 54px #07110a}canvas{width:min(100%,240px,49svh);height:auto;display:block;margin:auto;border:1px solid #5b7153;border-radius:8px}.pad{margin:7px auto 0;display:grid;width:max-content;grid-template-columns:repeat(3,min(16vw,64px));gap:5px}.pad button:first-child{grid-column:2}.pad button:nth-child(2){grid-column:1}.actions{display:flex;justify-content:center;gap:8px;margin:7px 0 0}button{touch-action:manipulation;min-height:44px;border:1px solid #677b5f;border-radius:8px;background:#344a37;color:#f5f7eb;padding:4px 12px;font:inherit;cursor:pointer}.pad button{padding:0;font-size:1.35rem}#start{background:#aebf98;color:#162317;font-weight:700}button:disabled{opacity:.48;cursor:default}button:focus-visible{outline:2px solid #f3d38b;outline-offset:2px}#message{margin:9px 0 4px;min-height:2.8em;color:#e2e9d7;font-size:.94rem}#score{font-size:.88rem;color:#b8c9ae}
+</style>
+<main><header><small>晚课之后 · 网页试玩</small><h1>被窝里的贪吃蛇</h1></header><section aria-label="贪吃蛇游戏"><canvas id="board" width="240" height="320" aria-label="贪吃蛇棋盘"></canvas><div class="pad" aria-label="方向"><button data-key="ArrowUp" aria-label="上">↑</button><button data-key="ArrowLeft" aria-label="左">←</button><button data-key="ArrowDown" aria-label="下">↓</button><button data-key="ArrowRight" aria-label="右">→</button></div><div class="actions"><button id="start">开始游戏</button><button id="lock" disabled>锁屏</button></div></section><p id="message" role="status">跟橙蛇抢苹果，看到巡寝提示记得锁屏。触屏或方向键都能玩。</p><span id="score"></span><noscript>请启用 JavaScript 后再开始游戏。</noscript></main>
+<script type="module">
+const phoneLayout={width:240,height:480,boardY:68,cell:24,boardSize:240,buttons:[{x:120,y:356,d:[0,-1],label:'↑'},{x:72,y:408,d:[-1,0],label:'←'},{x:120,y:408,d:[0,1],label:'↓'},{x:168,y:408,d:[1,0],label:'→'}]};
+function phoneDirectionAt(x,y){return phoneLayout.buttons.find(b=>Math.abs(x-b.x)<=21&&Math.abs(y-b.y)<=21)?.d||null;}
+function drawReadablePhone(c,p){const L=phoneLayout;c.fillStyle=p.scared?'#101816':'#91a784';c.fillRect(0,0,L.width,L.height);if(p.scared)return;
+ c.fillStyle='#192b20';c.font='bold 17px sans-serif';c.textAlign='center';c.fillText('贪吃蛇',120,28);c.font='13px sans-serif';c.fillText('你 '+p.score+'   |   电脑 '+p.botScore,120,50);
+ c.fillStyle='#b0c49b';c.fillRect(0,L.boardY,240,240);c.strokeStyle='#8d9f7c';c.lineWidth=.5;for(let i=0;i<=10;i++){c.beginPath();c.moveTo(i*24,L.boardY);c.lineTo(i*24,L.boardY+240);c.moveTo(0,L.boardY+i*24);c.lineTo(240,L.boardY+i*24);c.stroke();}
+ function snake(body,color,headColor,dir){c.fillStyle=color;for(let i=body.length-1;i>=0;i--){const [x,y]=body[i];c.fillRect(x*24+2,L.boardY+y*24+2,20,20);if(i){const [px,py]=body[i-1];if(Math.abs(px-x)+Math.abs(py-y)===1)c.fillRect(Math.min(x,px)*24+2,L.boardY+Math.min(y,py)*24+2,px===x?20:44,py===y?20:44);}}
+ const [x,y]=body[0],cx=x*24+12,cy=L.boardY+y*24+12;c.fillStyle=headColor;c.fillRect(cx-10,cy-10,20,20);c.fillStyle='#e7efd5';for(const s of [-1,1]){const ex=cx+dir[0]*5-dir[1]*s*5,ey=cy+dir[1]*5+dir[0]*s*5;c.fillRect(ex-2,ey-2,4,4);}}
+ const bh=p.bot[0],bt=p.bot[1]||bh;const bd=[Math.sign(bh[0]-bt[0]),Math.sign(bh[1]-bt[1])];snake(p.bot,'#a35d23','#693510',bd);snake(p.snake,'#284e33','#112d1c',p.dir);
+ const fx=p.food[0]*24+12,fy=L.boardY+p.food[1]*24+12;c.fillStyle='#9d2625';c.beginPath();c.arc(fx,fy,7,0,Math.PI*2);c.fill();c.fillStyle='#23432d';c.fillRect(fx,fy-11,3,5);
+ for(const b of L.buttons){c.fillStyle=p.next[0]===b.d[0]&&p.next[1]===b.d[1]?'#304e39':'#6d855f';c.fillRect(b.x-21,b.y-21,42,42);c.fillStyle='#edf3dd';c.font='bold 25px sans-serif';c.fillText(b.label,b.x,b.y+9);}c.font='11px sans-serif';c.fillStyle='#263d2b';c.fillText('方向键 / 点击手机箭头',120,459);
+}
+
+const $=id=>document.getElementById(id);
+const board=$('board'), ctx=board.getContext('2d'), message=$('message'), start=$('start'), lock=$('lock'), score=$('score');
+let phone,timer,started=0,locked=false;
+function restart(){
+ clearInterval(timer);locked=false;
+ phone={snake:[[4,4],[3,4],[2,4]],dir:[1,0],next:[1,0],food:[7,4],scared:false,score:0,bot:[[7,8],[8,8],[9,8]],botScore:0};
+ started=performance.now();start.textContent='重新开始';lock.disabled=false;message.textContent='嘘。巡寝还没到这里。';render();timer=setInterval(tick,280);
+}
+function render(){
+ drawReadablePhone(ctx,phone);
+ if(locked){ctx.fillStyle='#101816';ctx.fillRect(0,0,240,320);ctx.fillStyle='#adbea5';ctx.textAlign='center';ctx.font='18px sans-serif';ctx.fillText('手机已锁屏',120,151);}
+ score.textContent='你 '+phone.score+' · 橙蛇 '+phone.botScore;
+}
+function finish(ok){
+ clearInterval(timer);lock.disabled=true;phone.scared=true;locked=ok;
+ message.textContent=ok?'脚步从你床边过去了。今晚没被发现。':'“还在玩手机！” 宿管已经到床边了。';
+ render();if(!ok){ctx.fillStyle='#b64042';ctx.fillRect(76,108,12,5);ctx.fillRect(152,108,12,5);}
+}
+function tick(){
+ const time=(performance.now()-started)/1000;
+ if(time>=25){finish(false);return;}
+ if(time>=20)message.textContent='脚步停在床边。现在锁屏还来得及。';
+ phoneMove();render();
+}
+const keys={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
+function steer(key){const d=keys[key];if(!d||!phone||phone.scared)return;if(d[0]!==-phone.dir[0]||d[1]!==-phone.dir[1])phone.next=d;}
+document.addEventListener('keydown',e=>{if(keys[e.key]){e.preventDefault();steer(e.key);}else if(e.key==='Escape'&&!lock.disabled)finish(true);});
+document.querySelectorAll('[data-key]').forEach(b=>b.addEventListener('click',()=>steer(b.dataset.key)));
+start.onclick=restart;lock.onclick=()=>finish(true);
+phone={snake:[[4,4],[3,4],[2,4]],dir:[1,0],next:[1,0],food:[7,4],scared:false,score:0,bot:[[7,8],[8,8],[9,8]],botScore:0};render();
+function phoneFood(){
+ const free=[];for(let y=0;y<10;y++)for(let x=0;x<10;x++)if(!phone.snake.concat(phone.bot).some(p=>p[0]===x&&p[1]===y))free.push([x,y]);phone.food=free[((phone.score+phone.botScore)*17)%free.length]||[-1,-1];
+}
+function phoneMove(){
+ const hit=(p,list)=>list.some(q=>q[0]===p[0]&&q[1]===p[1]);
+ phone.dir=phone.next;const h=phone.snake[0],n=[(h[0]+phone.dir[0]+10)%10,(h[1]+phone.dir[1]+10)%10];
+ const eat=n[0]===phone.food[0]&&n[1]===phone.food[1];
+ if(hit(n,eat?phone.snake:phone.snake.slice(0,-1))||hit(n,phone.bot)){
+  phone.snake=[[4,4],[3,4],[2,4]];phone.bot=[[7,8],[8,8],[9,8]];phone.dir=phone.next=[1,0];phone.food=[7,4];message.textContent='撞到蛇身了。棋盘重置，巡寝还在继续。';return;
+ }
+ phone.snake.unshift(n);if(eat){phone.score++;phoneFood();}else phone.snake.pop();
+ const bh=phone.bot[0],options=[[0,-1],[-1,0],[0,1],[1,0]].map(d=>[(bh[0]+d[0]+10)%10,(bh[1]+d[1]+10)%10]).filter(p=>!hit(p,phone.snake)&&!hit(p,p[0]===phone.food[0]&&p[1]===phone.food[1]?phone.bot:phone.bot.slice(0,-1)));
+ const distance=p=>{const x=Math.abs(p[0]-phone.food[0]),y=Math.abs(p[1]-phone.food[1]);return Math.min(x,10-x)+Math.min(y,10-y);};options.sort((a,b)=>distance(a)-distance(b));
+ if(options.length){const p=options[0];phone.bot.unshift(p);if(p[0]===phone.food[0]&&p[1]===phone.food[1]){phone.botScore++;phoneFood();}else phone.bot.pop();}
+}
+
+</script>
+</html>
